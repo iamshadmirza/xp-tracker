@@ -21,8 +21,12 @@ class LocalStorageService implements StorageService {
   private readonly STORAGE_KEY = 'failure_goals';
   private readonly STORAGE_QUOTA = 4 * 1024 * 1024; // 4MB limit
 
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined';
+  }
+
   private getGoals(): FailureGoal[] {
-    if (typeof window === 'undefined') return [];
+    if (!this.isBrowser()) return [];
 
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -51,7 +55,7 @@ class LocalStorageService implements StorageService {
   }
 
   private saveGoals(goals: FailureGoal[]): void {
-    if (typeof window === 'undefined') return;
+    if (!this.isBrowser()) return;
 
     try {
       const serialized = JSON.stringify(goals);
@@ -91,7 +95,7 @@ class LocalStorageService implements StorageService {
     try {
       const goals = this.getGoals();
       const newGoal: FailureGoal = {
-        id: crypto.randomUUID(),
+        id: this.isBrowser() ? crypto.randomUUID() : Math.random().toString(36).substring(7),
         ...data,
         currentFailures: 0,
         createdAt: new Date(),
