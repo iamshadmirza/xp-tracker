@@ -1,19 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useFailureGoals } from "@/hooks/useFailureGoals";
 import { CreateGoalDialog } from "@/components/CreateGoalDialog";
 import { GoalCard } from "@/components/GoalCard";
 import { StatsOverview } from "@/components/StatsOverview";
-import { GraffitiCelebration } from "@/components/GraffitiCelebration";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Quote, Lightbulb, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+// Dynamically import the GraffitiCelebration component with no SSR
+const GraffitiCelebration = dynamic(
+  () =>
+    import("@/components/GraffitiCelebration").then(
+      (mod) => mod.GraffitiCelebration
+    ),
+  { ssr: false }
+);
+
 export default function Home() {
   const [showGlobalGraffiti, setShowGlobalGraffiti] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const {
     goals,
     activeGoals,
@@ -25,10 +35,35 @@ export default function Home() {
     markFailure,
   } = useFailureGoals();
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const handleMarkFailure = (id: string) => {
     setShowGlobalGraffiti(true);
     markFailure(id);
   };
+
+  // Show loading state during SSR
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+        <div className="container mx-auto px-4 py-8">
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-24" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -182,10 +217,12 @@ export default function Home() {
         </div>
       </div>
 
-      <GraffitiCelebration
-        show={showGlobalGraffiti}
-        onComplete={() => setShowGlobalGraffiti(false)}
-      />
+      {isMounted && (
+        <GraffitiCelebration
+          show={showGlobalGraffiti}
+          onComplete={() => setShowGlobalGraffiti(false)}
+        />
+      )}
     </div>
   );
 }
