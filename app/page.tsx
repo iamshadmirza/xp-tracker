@@ -1,0 +1,180 @@
+"use client";
+
+import { useState } from "react";
+import { useFailureGoals } from "@/hooks/useFailureGoals";
+import { CreateGoalDialog } from "@/components/CreateGoalDialog";
+import { GoalCard } from "@/components/GoalCard";
+import { StatsOverview } from "@/components/StatsOverview";
+import { GraffitiCelebration } from "@/components/GraffitiCelebration";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Quote, Lightbulb } from "lucide-react";
+
+export default function Home() {
+  const [showGlobalGraffiti, setShowGlobalGraffiti] = useState(false);
+  const {
+    goals,
+    activeGoals,
+    completedGoals,
+    loading,
+    createGoal,
+    deleteGoal,
+    markFailure,
+  } = useFailureGoals();
+
+  const handleMarkFailure = (id: string) => {
+    setShowGlobalGraffiti(true);
+    markFailure(id);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+        <div className="container mx-auto px-4 py-8">
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-24" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              XP Tracker
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Level up through experience. Track your journey from novice to
+              expert, one XP gain at a time.
+            </p>
+
+            {/* Inspirational Quote */}
+            <Card className="max-w-2xl mx-auto bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/50">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-3">
+                  <Quote className="h-5 w-5 text-blue-400 mt-1 flex-shrink-0" />
+                  <div className="text-left">
+                    <p className="text-sm text-slate-300 italic">
+                      "If you knew you were 30 failures away from mastery, how
+                      fast would you want to fail?"
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Your mantra for growth
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Stats Overview */}
+          <StatsOverview goals={goals} />
+
+          {/* Main Content */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <Lightbulb className="h-5 w-5 text-yellow-400" />
+              <span className="text-sm text-muted-foreground">
+                Every experience is data. Every attempt is progress.
+              </span>
+            </div>
+            <CreateGoalDialog onCreateGoal={createGoal} />
+          </div>
+
+          <Tabs defaultValue="active" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
+              <TabsTrigger value="active">
+                Active Journeys ({activeGoals.length})
+              </TabsTrigger>
+              <TabsTrigger value="completed">
+                Mastered ({completedGoals.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="active" className="space-y-6">
+              {activeGoals.length === 0 ? (
+                <Card className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 border-slate-700/50">
+                  <CardContent className="p-12 text-center">
+                    <div className="space-y-4">
+                      <div className="text-4xl">🚀</div>
+                      <h3 className="text-xl font-semibold text-foreground">
+                        Ready to Start Gaining XP?
+                      </h3>
+                      <p className="text-muted-foreground max-w-md mx-auto">
+                        Your journey to mastery begins with the first
+                        experience. Create your first goal and start collecting
+                        valuable learning XP.
+                      </p>
+                      <CreateGoalDialog onCreateGoal={createGoal} />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeGoals.map((goal) => (
+                    <GoalCard
+                      key={goal.id}
+                      goal={goal}
+                      onMarkFailure={handleMarkFailure}
+                      onDelete={deleteGoal}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="completed" className="space-y-6">
+              {completedGoals.length === 0 ? (
+                <Card className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 border-slate-700/50">
+                  <CardContent className="p-12 text-center">
+                    <div className="space-y-4">
+                      <div className="text-4xl">🏆</div>
+                      <h3 className="text-xl font-semibold text-foreground">
+                        No Mastery Achieved Yet
+                      </h3>
+                      <p className="text-muted-foreground max-w-md mx-auto">
+                        Keep working on your active goals. Your first mastery
+                        achievement will appear here once you've completed your
+                        XP journey.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {completedGoals.map((goal) => (
+                    <GoalCard
+                      key={goal.id}
+                      goal={goal}
+                      onMarkFailure={handleMarkFailure}
+                      onDelete={deleteGoal}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+
+      <GraffitiCelebration
+        show={showGlobalGraffiti}
+        onComplete={() => setShowGlobalGraffiti(false)}
+      />
+    </div>
+  );
+}
