@@ -9,7 +9,8 @@ import { GraffitiCelebration } from "@/components/GraffitiCelebration";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Quote, Lightbulb } from "lucide-react";
+import { Quote, Lightbulb, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function Home() {
   const [showGlobalGraffiti, setShowGlobalGraffiti] = useState(false);
@@ -18,6 +19,7 @@ export default function Home() {
     activeGoals,
     completedGoals,
     loading,
+    error,
     createGoal,
     deleteGoal,
     markFailure,
@@ -69,8 +71,8 @@ export default function Home() {
                   <Quote className="h-5 w-5 text-blue-400 mt-1 flex-shrink-0" />
                   <div className="text-left">
                     <p className="text-sm text-slate-300 italic">
-                      "If you knew you were 30 failures away from mastery, how
-                      fast would you want to fail?"
+                      &ldquo;If you knew you were 30 failures away from mastery,
+                      how fast would you want to fail?&rdquo;
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Your mantra for growth
@@ -80,6 +82,15 @@ export default function Home() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Stats Overview */}
           <StatsOverview goals={goals} />
@@ -148,8 +159,8 @@ export default function Home() {
                       </h3>
                       <p className="text-muted-foreground max-w-md mx-auto">
                         Keep working on your active goals. Your first mastery
-                        achievement will appear here once you've completed your
-                        XP journey.
+                        achievement will appear here once you&apos;ve completed
+                        your XP journey.
                       </p>
                     </div>
                   </CardContent>
