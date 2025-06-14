@@ -103,7 +103,7 @@ export function CreateGoalDialog({ onCreateGoal }: CreateGoalDialogProps) {
             <Label htmlFor="description">Description (optional)</Label>
             <Textarea
               id="description"
-              placeholder="Describe your journey and what success looks like..."
+              placeholder="Describe your quest and what success looks like..."
               value={formData.description}
               onChange={(e) =>
                 setFormData((prev) => ({

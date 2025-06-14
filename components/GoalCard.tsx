@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { FailureGoal } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Trophy, Target } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { GraffitiCelebration } from './GraffitiCelebration';
+import { useState } from "react";
+import { FailureGoal } from "@/types";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Plus, Trophy, Target } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { GraffitiCelebration } from "./GraffitiCelebration";
 
 interface GoalCardProps {
   goal: FailureGoal;
@@ -28,12 +34,14 @@ export function GoalCard({ goal, onMarkFailure, onDelete }: GoalCardProps) {
 
   return (
     <>
-      <Card className={cn(
-        "group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105",
-        goal.isCompleted 
-          ? "bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20" 
-          : "bg-gradient-to-br from-slate-900/50 to-slate-800/50 border-slate-700/50 hover:border-slate-600/50"
-      )}>
+      <Card
+        className={cn(
+          "group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105",
+          goal.isCompleted
+            ? "bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20"
+            : "bg-gradient-to-br from-slate-900/50 to-slate-800/50 border-slate-700/50 hover:border-slate-600/50"
+        )}
+      >
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -67,14 +75,14 @@ export function GoalCard({ goal, onMarkFailure, onDelete }: GoalCardProps) {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
-                {goal.isCompleted ? 'Journey Complete!' : 'Failures Remaining'}
+                {goal.isCompleted ? "Quest Complete!" : "Failures Remaining"}
               </span>
               <span className="font-medium">
-                {goal.isCompleted ? '🎉' : `${remainingFailures} left`}
+                {goal.isCompleted ? "🎉" : `${remainingFailures} left`}
               </span>
             </div>
-            <Progress 
-              value={progressPercentage} 
+            <Progress
+              value={progressPercentage}
               className={cn(
                 "h-3 transition-all duration-500",
                 goal.isCompleted && "bg-green-100"
@@ -99,7 +107,7 @@ export function GoalCard({ goal, onMarkFailure, onDelete }: GoalCardProps) {
           {goal.isCompleted && (
             <div className="text-center p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
               <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                Congratulations! You've completed your failure journey.
+                Congratulations! You&apos;ve completed your quest.
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Success is just the beginning of the next adventure.
@@ -109,9 +117,9 @@ export function GoalCard({ goal, onMarkFailure, onDelete }: GoalCardProps) {
         </CardContent>
       </Card>
 
-      <GraffitiCelebration 
-        show={showGraffiti} 
-        onComplete={() => setShowGraffiti(false)} 
+      <GraffitiCelebration
+        show={showGraffiti}
+        onComplete={() => setShowGraffiti(false)}
       />
     </>
   );

@@ -144,7 +144,7 @@ export default function Home() {
           <Tabs defaultValue="active" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
               <TabsTrigger value="active">
-                Active Journeys ({activeGoals.length})
+                Active Quests ({activeGoals.length})
               </TabsTrigger>
               <TabsTrigger value="completed">
                 Mastered ({completedGoals.length})
@@ -195,7 +195,7 @@ export default function Home() {
                       <p className="text-muted-foreground max-w-md mx-auto">
                         Keep working on your active goals. Your first mastery
                         achievement will appear here once you&apos;ve completed
-                        your XP journey.
+                        your quest.
                       </p>
                     </div>
                   </CardContent>
