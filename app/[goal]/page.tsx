@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useFailureGoals } from "@/hooks/useFailureGoals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import Link from "next/link";
 import { FailureLogs } from "@/components/FailureLogs";
 import { Progress } from "@/components/ui/progress";
@@ -48,17 +48,69 @@ export default function GoalPage() {
     await markFailure(goal.id, logData);
   };
 
+  const handleExportLogs = () => {
+    if (!goal || !goal.logs || !goal.logs.length) {
+      return;
+    }
+
+    try {
+      // Create CSV content
+      const headers = ["Date", "What Happened", "What I Learned"];
+      const rows = goal.logs.map((log) => [
+        new Date(log.createdAt).toLocaleString(),
+        log.description || "",
+        log.learnedFrom || "",
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row) =>
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        ),
+      ].join("\n");
+
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      // Create a temporary anchor element
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${
+        goal.title?.toLowerCase().replace(/\s+/g, "-") || "failure"
+      }-logs.csv`;
+
+      // Trigger download
+      link.click();
+
+      // Clean up
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting logs:", error);
+    }
+  };
+
   const progress = (goal.currentFailures / goal.targetFailures) * 100;
 
   return (
     <div className="container mx-auto h-screen flex flex-col">
       <div className="flex-1 py-8">
-        <Link href="/">
-          <Button variant="ghost" className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Goals
+        <div className="flex justify-between items-center mb-4">
+          <Link href="/">
+            <Button variant="ghost">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Goals
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            onClick={handleExportLogs}
+            disabled={!goal?.logs.length}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export logs
           </Button>
-        </Link>
+        </div>
         <Card className="h-[calc(100vh-8rem)]">
           <CardHeader className="text-center">
             <CardTitle>{goal.title}</CardTitle>
