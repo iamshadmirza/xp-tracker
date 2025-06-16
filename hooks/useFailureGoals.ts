@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FailureGoal, CreateFailureGoalData, UpdateFailureGoalData } from '@/types';
+import { FailureGoal, CreateFailureGoalData, UpdateFailureGoalData, CreateFailureLogData } from '@/types';
 import { storageService, StorageError } from '@/services/storage';
 import { useToast } from '@/hooks/use-toast';
 
@@ -105,10 +105,10 @@ export function useFailureGoals() {
     }
   };
 
-  const markFailure = async (id: string) => {
+  const markFailure = async (id: string, logData: CreateFailureLogData) => {
     try {
       setError(null);
-      const updatedGoal = await storageService.markFailure(id);
+      const updatedGoal = await storageService.markFailure(id, logData);
       setGoals(prev => prev.map(goal => goal.id === id ? updatedGoal : goal));
 
       if (updatedGoal.isCompleted) {

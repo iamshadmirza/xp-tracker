@@ -1,24 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { FailureGoal } from "@/types";
+import { CreateFailureLogData, FailureGoal } from "@/types";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Trophy, Target } from "lucide-react";
+import { LogFailureDialog } from "./LogFailureDialog";
 import { cn } from "@/lib/utils";
 import { GraffitiCelebration } from "./GraffitiCelebration";
+import { Trophy, Target, Trash2, Plus, History } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 interface GoalCardProps {
   goal: FailureGoal;
-  onMarkFailure: (id: string) => void;
+  onMarkFailure: (id: string, logData: CreateFailureLogData) => void;
   onDelete: (id: string) => void;
 }
 
@@ -27,9 +29,12 @@ export function GoalCard({ goal, onMarkFailure, onDelete }: GoalCardProps) {
   const progressPercentage = (goal.currentFailures / goal.targetFailures) * 100;
   const remainingFailures = goal.targetFailures - goal.currentFailures;
 
-  const handleMarkFailure = () => {
+  const handleLogFailure = async (logData: {
+    description: string;
+    learnedFrom: string;
+  }) => {
     setShowGraffiti(true);
-    onMarkFailure(goal.id);
+    onMarkFailure(goal.id, logData);
   };
 
   return (
@@ -94,16 +99,18 @@ export function GoalCard({ goal, onMarkFailure, onDelete }: GoalCardProps) {
             </div>
           </div>
 
-          {!goal.isCompleted && (
-            <Button
-              onClick={handleMarkFailure}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transform transition-all duration-200 hover:scale-105 active:scale-95"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Mark Another Failure
-            </Button>
-          )}
-
+          <div className="flex justify-between space-x-2 items-center">
+            <Link href={`/${goal.id}`}>
+              <Button variant="outline">
+                <History className="h-4 w-4 mr-2" />
+                View Logs
+              </Button>
+            </Link>
+            <LogFailureDialog
+              onLogFailure={handleLogFailure}
+              disabled={goal.isCompleted}
+            />
+          </div>
           {goal.isCompleted && (
             <div className="text-center p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
               <p className="text-sm font-medium text-green-600 dark:text-green-400">
@@ -117,10 +124,21 @@ export function GoalCard({ goal, onMarkFailure, onDelete }: GoalCardProps) {
         </CardContent>
       </Card>
 
-      <GraffitiCelebration
-        show={showGraffiti}
-        onComplete={() => setShowGraffiti(false)}
-      />
+      {showGraffiti && (
+        <div
+          className={cn(
+            "fixed inset-0 z-50 flex items-center justify-center",
+            showGraffiti
+              ? "animate-in fade-in duration-500"
+              : "animate-out fade-out duration-500"
+          )}
+        >
+          <GraffitiCelebration
+            show={showGraffiti}
+            onComplete={() => setShowGraffiti(false)}
+          />
+        </div>
+      )}
     </>
   );
 }

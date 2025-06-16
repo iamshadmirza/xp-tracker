@@ -1,3 +1,11 @@
+export interface FailureLog {
+  id: string;
+  goalId: string;
+  description: string;
+  learnedFrom: string;
+  createdAt: Date;
+}
+
 export interface FailureGoal {
   id: string;
   title: string;
@@ -8,6 +16,7 @@ export interface FailureGoal {
   createdAt: Date;
   updatedAt: Date;
   isCompleted: boolean;
+  logs: FailureLog[];
 }
 
 export interface CreateFailureGoalData {
@@ -22,4 +31,9 @@ export interface UpdateFailureGoalData {
   description?: string;
   targetFailures?: number;
   category?: string;
+}
+
+export interface CreateFailureLogData {
+  description: string;
+  learnedFrom: string;
 }

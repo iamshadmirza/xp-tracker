@@ -1,4 +1,4 @@
-import { FailureGoal, CreateFailureGoalData, UpdateFailureGoalData } from '@/types';
+import { FailureGoal, CreateFailureGoalData, UpdateFailureGoalData, FailureLog, CreateFailureLogData } from '@/types';
 import Dexie, { Table } from 'dexie';
 
 export class StorageError extends Error {
@@ -15,17 +15,20 @@ export interface StorageService {
   create(data: CreateFailureGoalData): Promise<FailureGoal>;
   update(id: string, data: UpdateFailureGoalData): Promise<FailureGoal>;
   delete(id: string): Promise<void>;
-  markFailure(id: string): Promise<FailureGoal>;
+  markFailure(id: string, logData: CreateFailureLogData): Promise<FailureGoal>;
+  getFailureLogs(goalId: string): Promise<FailureLog[]>;
 }
 
 // Define the database schema
 class FailureGoalsDatabase extends Dexie {
   goals!: Table<FailureGoal>;
+  logs!: Table<FailureLog>;
 
   constructor() {
     super('quests_db');
     this.version(1).stores({
-      goals: 'id, createdAt, category, isCompleted'
+      goals: 'id, createdAt, category, isCompleted',
+      logs: 'id, goalId, createdAt'
     });
   }
 }
@@ -44,11 +47,18 @@ class DexieStorageService implements StorageService {
   async getAll(): Promise<FailureGoal[]> {
     try {
       const goals = await this.db.goals.toArray();
-      return goals.map(goal => ({
-        ...goal,
-        createdAt: new Date(goal.createdAt),
-        updatedAt: new Date(goal.updatedAt),
-      }));
+      const goalsWithLogs = await Promise.all(
+        goals.map(async (goal) => {
+          const logs = await this.getFailureLogs(goal.id);
+          return {
+            ...goal,
+            logs,
+            createdAt: new Date(goal.createdAt),
+            updatedAt: new Date(goal.updatedAt),
+          };
+        })
+      );
+      return goalsWithLogs;
     } catch (error) {
       console.error('Failed to get all quests:', error);
       throw new StorageError('Failed to get all quests', error);
@@ -60,8 +70,10 @@ class DexieStorageService implements StorageService {
       const goal = await this.db.goals.get(id);
       if (!goal) return null;
 
+      const logs = await this.getFailureLogs(id);
       return {
         ...goal,
+        logs,
         createdAt: new Date(goal.createdAt),
         updatedAt: new Date(goal.updatedAt),
       };
@@ -80,6 +92,7 @@ class DexieStorageService implements StorageService {
         createdAt: new Date(),
         updatedAt: new Date(),
         isCompleted: false,
+        logs: [],
       };
 
       await this.db.goals.add(newGoal);
@@ -113,6 +126,9 @@ class DexieStorageService implements StorageService {
 
   async delete(id: string): Promise<void> {
     try {
+      // Delete all logs associated with this goal
+      await this.db.logs.where('goalId').equals(id).delete();
+      // Delete the goal
       await this.db.goals.delete(id);
     } catch (error) {
       console.error(`Failed to delete quest with id ${id}:`, error);
@@ -120,7 +136,25 @@ class DexieStorageService implements StorageService {
     }
   }
 
-  async markFailure(id: string): Promise<FailureGoal> {
+  async getFailureLogs(goalId: string): Promise<FailureLog[]> {
+    try {
+      const logs = await this.db.logs
+        .where('goalId')
+        .equals(goalId)
+        .reverse()
+        .sortBy('createdAt');
+
+      return logs.map(log => ({
+        ...log,
+        createdAt: new Date(log.createdAt),
+      }));
+    } catch (error) {
+      console.error(`Failed to get failure logs for quest ${goalId}:`, error);
+      throw new StorageError(`Failed to get failure logs for quest ${goalId}`, error);
+    }
+  }
+
+  async markFailure(id: string, logData: CreateFailureLogData): Promise<FailureGoal> {
     try {
       const existingGoal = await this.getById(id);
       if (!existingGoal) {
@@ -130,6 +164,15 @@ class DexieStorageService implements StorageService {
       const newFailureCount = existingGoal.currentFailures + 1;
       const isCompleted = newFailureCount >= existingGoal.targetFailures;
 
+      // Create the failure log
+      const newLog: FailureLog = {
+        id: this.isBrowser() ? crypto.randomUUID() : Math.random().toString(36).substring(7),
+        goalId: id,
+        ...logData,
+        createdAt: new Date(),
+      };
+
+      // Update the goal
       const updatedGoal = {
         ...existingGoal,
         currentFailures: newFailureCount,
@@ -137,8 +180,16 @@ class DexieStorageService implements StorageService {
         updatedAt: new Date(),
       };
 
-      await this.db.goals.put(updatedGoal);
-      return updatedGoal;
+      // Save both the log and the updated goal
+      await this.db.transaction('rw', [this.db.logs, this.db.goals], async () => {
+        await this.db.logs.add(newLog);
+        await this.db.goals.put(updatedGoal);
+      });
+
+      return {
+        ...updatedGoal,
+        logs: [...existingGoal.logs, newLog],
+      };
     } catch (error) {
       console.error(`Failed to mark failure for quest with id ${id}:`, error);
       throw new StorageError(`Failed to mark failure for quest with id ${id}`, error);

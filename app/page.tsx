@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Quote, Lightbulb, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CreateFailureLogData } from "@/types";
 
 // Dynamically import the GraffitiCelebration component with no SSR
 const GraffitiCelebration = dynamic(
@@ -39,9 +40,9 @@ export default function Home() {
     setIsMounted(true);
   }, []);
 
-  const handleMarkFailure = (id: string) => {
+  const handleMarkFailure = (id: string, logData: CreateFailureLogData) => {
     setShowGlobalGraffiti(true);
-    markFailure(id);
+    markFailure(id, logData);
   };
 
   // Show loading state during SSR
@@ -88,13 +89,23 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
       <div className="container mx-auto px-4 py-8">
+        {/* Main Content */}
+        <div className="flex justify-between items-center py-4 border-b border-slate-700/50 mb-8">
+          <div className="flex items-center space-x-4">
+            <Lightbulb className="h-5 w-5 text-yellow-400" />
+            <span className="text-sm text-muted-foreground">
+              Every experience is data. Every attempt is progress.
+            </span>
+          </div>
+          <CreateGoalDialog onCreateGoal={createGoal} />
+        </div>
         <div className="space-y-8">
-          {/* Header */}
+          {/* Hero Section */}
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
               XP Tracker
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-4xl mx-auto">
               Level up through experience. Track your journey from novice to
               expert, one XP gain at a time.
             </p>
@@ -102,15 +113,12 @@ export default function Home() {
             {/* Inspirational Quote */}
             <Card className="max-w-2xl mx-auto bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/50">
               <CardContent className="p-6">
-                <div className="flex items-start space-x-3">
+                <div className="flex items-center justify-center space-x-3">
                   <Quote className="h-5 w-5 text-blue-400 mt-1 flex-shrink-0" />
                   <div className="text-left">
                     <p className="text-sm text-slate-300 italic">
                       &ldquo;If you knew you were 30 failures away from mastery,
                       how fast would you want to fail?&rdquo;
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Your mantra for growth
                     </p>
                   </div>
                 </div>
@@ -129,17 +137,6 @@ export default function Home() {
 
           {/* Stats Overview */}
           <StatsOverview goals={goals} />
-
-          {/* Main Content */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Lightbulb className="h-5 w-5 text-yellow-400" />
-              <span className="text-sm text-muted-foreground">
-                Every experience is data. Every attempt is progress.
-              </span>
-            </div>
-            <CreateGoalDialog onCreateGoal={createGoal} />
-          </div>
 
           <Tabs defaultValue="active" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
