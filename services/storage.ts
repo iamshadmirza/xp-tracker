@@ -1,4 +1,5 @@
 import { FailureGoal, CreateFailureGoalData, UpdateFailureGoalData } from '@/types';
+import Dexie, { Table } from 'dexie';
 
 export class StorageError extends Error {
   constructor(message: string, public readonly cause?: unknown) {
@@ -17,83 +18,61 @@ export interface StorageService {
   markFailure(id: string): Promise<FailureGoal>;
 }
 
-class LocalStorageService implements StorageService {
-  private readonly STORAGE_KEY = 'failure_goals';
-  private readonly STORAGE_QUOTA = 4 * 1024 * 1024; // 4MB limit
+// Define the database schema
+class FailureGoalsDatabase extends Dexie {
+  goals!: Table<FailureGoal>;
+
+  constructor() {
+    super('quests_db');
+    this.version(1).stores({
+      goals: 'id, createdAt, category, isCompleted'
+    });
+  }
+}
+
+class DexieStorageService implements StorageService {
+  private db: FailureGoalsDatabase;
+
+  constructor() {
+    this.db = new FailureGoalsDatabase();
+  }
 
   private isBrowser(): boolean {
     return typeof window !== 'undefined';
   }
 
-  private getGoals(): FailureGoal[] {
-    if (!this.isBrowser()) return [];
-
+  async getAll(): Promise<FailureGoal[]> {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (!stored) return [];
-
-      const parsed = JSON.parse(stored) as Array<{
-        id: string;
-        title: string;
-        description: string;
-        targetFailures: number;
-        currentFailures: number;
-        category: string;
-        createdAt: string;
-        updatedAt: string;
-        isCompleted: boolean;
-      }>;
-      return parsed.map(goal => ({
+      const goals = await this.db.goals.toArray();
+      return goals.map(goal => ({
         ...goal,
         createdAt: new Date(goal.createdAt),
         updatedAt: new Date(goal.updatedAt),
       }));
     } catch (error) {
-      console.error('Failed to parse stored goals:', error);
-      return [];
-    }
-  }
-
-  private saveGoals(goals: FailureGoal[]): void {
-    if (!this.isBrowser()) return;
-
-    try {
-      const serialized = JSON.stringify(goals);
-
-      // Check if we're approaching storage quota
-      if (serialized.length > this.STORAGE_QUOTA) {
-        throw new StorageError('Storage quota exceeded. Please delete some goals to free up space.');
-      }
-
-      localStorage.setItem(this.STORAGE_KEY, serialized);
-    } catch (error) {
-      if (error instanceof StorageError) {
-        throw error;
-      }
-      throw new StorageError('Failed to save goals to storage', error);
-    }
-  }
-
-  async getAll(): Promise<FailureGoal[]> {
-    try {
-      return this.getGoals();
-    } catch (error) {
-      throw new StorageError('Failed to get all goals', error);
+      console.error('Failed to get all quests:', error);
+      throw new StorageError('Failed to get all quests', error);
     }
   }
 
   async getById(id: string): Promise<FailureGoal | null> {
     try {
-      const goals = this.getGoals();
-      return goals.find(goal => goal.id === id) || null;
+      const goal = await this.db.goals.get(id);
+      if (!goal) return null;
+
+      return {
+        ...goal,
+        createdAt: new Date(goal.createdAt),
+        updatedAt: new Date(goal.updatedAt),
+      };
     } catch (error) {
-      throw new StorageError(`Failed to get goal with id ${id}`, error);
+      console.error(`Failed to get quest with id ${id}:`, error);
+      throw new StorageError(`Failed to get quest with id ${id}`, error);
     }
   }
 
   async create(data: CreateFailureGoalData): Promise<FailureGoal> {
     try {
-      const goals = this.getGoals();
       const newGoal: FailureGoal = {
         id: this.isBrowser() ? crypto.randomUUID() : Math.random().toString(36).substring(7),
         ...data,
@@ -103,75 +82,69 @@ class LocalStorageService implements StorageService {
         isCompleted: false,
       };
 
-      goals.push(newGoal);
-      this.saveGoals(goals);
+      await this.db.goals.add(newGoal);
       return newGoal;
     } catch (error) {
-      throw new StorageError('Failed to create goal', error);
+      console.error('Failed to create quest:', error);
+      throw new StorageError('Failed to create quest', error);
     }
   }
 
   async update(id: string, data: UpdateFailureGoalData): Promise<FailureGoal> {
     try {
-      const goals = this.getGoals();
-      const index = goals.findIndex(goal => goal.id === id);
-
-      if (index === -1) {
-        throw new StorageError(`Goal with id ${id} not found`);
+      const existingGoal = await this.getById(id);
+      if (!existingGoal) {
+        throw new StorageError(`Quest with id ${id} not found`);
       }
 
       const updatedGoal = {
-        ...goals[index],
+        ...existingGoal,
         ...data,
         updatedAt: new Date(),
       };
 
-      goals[index] = updatedGoal;
-      this.saveGoals(goals);
+      await this.db.goals.put(updatedGoal);
       return updatedGoal;
     } catch (error) {
-      throw new StorageError(`Failed to update goal with id ${id}`, error);
+      console.error(`Failed to update quest with id ${id}:`, error);
+      throw new StorageError(`Failed to update quest with id ${id}`, error);
     }
   }
 
   async delete(id: string): Promise<void> {
     try {
-      const goals = this.getGoals();
-      const filteredGoals = goals.filter(goal => goal.id !== id);
-      this.saveGoals(filteredGoals);
+      await this.db.goals.delete(id);
     } catch (error) {
-      throw new StorageError(`Failed to delete goal with id ${id}`, error);
+      console.error(`Failed to delete quest with id ${id}:`, error);
+      throw new StorageError(`Failed to delete quest with id ${id}`, error);
     }
   }
 
   async markFailure(id: string): Promise<FailureGoal> {
     try {
-      const goals = this.getGoals();
-      const index = goals.findIndex(goal => goal.id === id);
-
-      if (index === -1) {
-        throw new StorageError(`Goal with id ${id} not found`);
+      const existingGoal = await this.getById(id);
+      if (!existingGoal) {
+        throw new StorageError(`Quest with id ${id} not found`);
       }
 
-      const goal = goals[index];
-      const newFailureCount = goal.currentFailures + 1;
-      const isCompleted = newFailureCount >= goal.targetFailures;
+      const newFailureCount = existingGoal.currentFailures + 1;
+      const isCompleted = newFailureCount >= existingGoal.targetFailures;
 
       const updatedGoal = {
-        ...goal,
+        ...existingGoal,
         currentFailures: newFailureCount,
         isCompleted,
         updatedAt: new Date(),
       };
 
-      goals[index] = updatedGoal;
-      this.saveGoals(goals);
+      await this.db.goals.put(updatedGoal);
       return updatedGoal;
     } catch (error) {
-      throw new StorageError(`Failed to mark failure for goal with id ${id}`, error);
+      console.error(`Failed to mark failure for quest with id ${id}:`, error);
+      throw new StorageError(`Failed to mark failure for quest with id ${id}`, error);
     }
   }
 }
 
 // Export the storage service instance
-export const storageService: StorageService = new LocalStorageService();
+export const storageService: StorageService = new DexieStorageService();
