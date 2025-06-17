@@ -4,10 +4,11 @@ import { useParams } from "next/navigation";
 import { useFailureGoals } from "@/hooks/useFailureGoals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Flame, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { FailureLogs } from "@/components/FailureLogs";
 import { Progress } from "@/components/ui/progress";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Remove the dynamic export since we're using client-side rendering
 // export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ export default function GoalPage() {
               <Link href="/">
                 <Button>
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Goals
+                  Back to Quests
                 </Button>
               </Link>
             </div>
@@ -92,6 +93,18 @@ export default function GoalPage() {
 
   const progress = (goal.currentFailures / goal.targetFailures) * 100;
 
+  const getStreakIcon = () => {
+    if (!goal) return null;
+    switch (goal.streakStatus) {
+      case "active":
+        return <Flame className="h-5 w-5 text-orange-500" />;
+      case "warning":
+        return <Hourglass className="h-5 w-5 text-yellow-500" />;
+      default:
+        return <Flame className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
   return (
     <div className="container mx-auto h-screen flex flex-col">
       <div className="flex-1 py-8">
@@ -99,17 +112,23 @@ export default function GoalPage() {
           <Link href="/">
             <Button variant="ghost">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Goals
+              Back to Quests
             </Button>
           </Link>
-          <Button
-            variant="outline"
-            onClick={handleExportLogs}
-            disabled={!goal?.logs.length}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export logs
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {getStreakIcon()}
+              <span>Current Streak: {goal.currentStreak}</span>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleExportLogs}
+              disabled={!goal?.logs.length}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export logs
+            </Button>
+          </div>
         </div>
         <Card className="h-[calc(100vh-8rem)]">
           <CardHeader className="text-center">
@@ -121,7 +140,7 @@ export default function GoalPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {goal.description}
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>
                       {goal.currentFailures} of {goal.targetFailures} failures

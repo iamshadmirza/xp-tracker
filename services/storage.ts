@@ -26,8 +26,8 @@ class FailureGoalsDatabase extends Dexie {
 
   constructor() {
     super('quests_db');
-    this.version(1).stores({
-      goals: 'id, createdAt, category, isCompleted',
+    this.version(2).stores({
+      goals: 'id, createdAt, category, isCompleted, lastFailureAt',
       logs: 'id, goalId, createdAt'
     });
   }
@@ -93,6 +93,9 @@ class DexieStorageService implements StorageService {
         updatedAt: new Date(),
         isCompleted: false,
         logs: [],
+        currentStreak: 0,
+        lastFailureAt: null,
+        streakStatus: 'broken'
       };
 
       await this.db.goals.add(newGoal);
@@ -163,13 +166,39 @@ class DexieStorageService implements StorageService {
 
       const newFailureCount = existingGoal.currentFailures + 1;
       const isCompleted = newFailureCount >= existingGoal.targetFailures;
+      const now = new Date();
+
+      // Calculate streak
+      let currentStreak = existingGoal.currentStreak;
+      let streakStatus = existingGoal.streakStatus;
+
+      if (existingGoal.lastFailureAt) {
+        const hoursSinceLastFailure = (now.getTime() - existingGoal.lastFailureAt.getTime()) / (1000 * 60 * 60);
+
+        if (hoursSinceLastFailure <= 24) {
+          // Within 24 hours - increment streak
+          currentStreak += 1;
+          streakStatus = 'active';
+        } else if (hoursSinceLastFailure <= 34) { // 24 + 10 hours
+          // Within grace period - maintain streak
+          streakStatus = 'warning';
+        } else {
+          // Streak broken
+          currentStreak = 1;
+          streakStatus = 'broken';
+        }
+      } else {
+        // First failure
+        currentStreak = 1;
+        streakStatus = 'active';
+      }
 
       // Create the failure log
       const newLog: FailureLog = {
         id: this.isBrowser() ? crypto.randomUUID() : Math.random().toString(36).substring(7),
         goalId: id,
         ...logData,
-        createdAt: new Date(),
+        createdAt: now,
       };
 
       // Update the goal
@@ -177,7 +206,10 @@ class DexieStorageService implements StorageService {
         ...existingGoal,
         currentFailures: newFailureCount,
         isCompleted,
-        updatedAt: new Date(),
+        updatedAt: now,
+        currentStreak,
+        lastFailureAt: now,
+        streakStatus
       };
 
       // Save both the log and the updated goal

@@ -17,6 +17,9 @@ export interface FailureGoal {
   updatedAt: Date;
   isCompleted: boolean;
   logs: FailureLog[];
+  currentStreak: number;
+  lastFailureAt: Date | null;
+  streakStatus: 'active' | 'warning' | 'broken';
 }
 
 export interface CreateFailureGoalData {
